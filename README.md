@@ -12,6 +12,7 @@ pip3 install -r requirements.txt
 `python3 src/main.py <memcache-host> <memcache-port>`
 
 - <kbd>r</kbd>: refresh key list
+- <kbd>f</kbd>: flush/clear key list
 - <kbd>enter</kbd>: show key contents on the right panel
 - <kbd>d</kbd>: delete key
 - <kbd>y</kbd>: copies the contents displayed on the right panel to the clipboard
