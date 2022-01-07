@@ -1,3 +1,5 @@
+# isort:skip_file
+
 import urwid
 import sys
 import logging
@@ -5,12 +7,15 @@ from zope.event import notify
 from zope.event import subscribers
 import clipboard
 
+logging.basicConfig(filename='log.txt', level=logging.DEBUG, format='%(asctime)s %(message)s')
+
 palette = [('bg', 'white', 'black'),
            ('banner', 'black', 'light gray'),
            ('warn', 'black', 'yellow'),
            ('text',   'white', 'black'),
            ('streak', 'black', 'dark blue'),
            ('line',   'black', 'light gray')]
+
 
 class MainUI(urwid.WidgetWrap):
 
@@ -35,6 +40,9 @@ class MainUI(urwid.WidgetWrap):
         if e['name'] == 'refresh':
             notify({'name':'refresh-resp', 'data':self.refresh_items()})
 
+        if e['name'] == 'flush':
+            notify({'name':'items-flushed', 'data':self.flush_items()})
+
         if e['name'] == 'item-clicked':
             notify({'name':'item-loaded', 'data':self.get_item(e['key'])})
 
@@ -43,16 +51,16 @@ class MainUI(urwid.WidgetWrap):
 
     def start(self):
         loop = urwid.MainLoop(self, palette, unhandled_input=handle_global_key)
-        
+
         notify({'name': 'refresh'})
-        
+
         loop.run()
 
 
 class KeyListWidget(urwid.WidgetWrap):
 
     def __init__(self):
-        
+
         self._contents = []
         self._update_list_box()
 
@@ -62,6 +70,10 @@ class KeyListWidget(urwid.WidgetWrap):
 
         if e['name'] == 'refresh-resp':
             self._contents = e['data']
+            self._update_list_box()
+
+        elif e['name'] == 'items-flushed':
+            self._contents = []
             self._update_list_box()
 
         elif e['name'] == 'delete':
@@ -79,7 +91,7 @@ class KeyListWidget(urwid.WidgetWrap):
             widgets = [urwid.Text(('warn', u" no keys found ! "), align='center')]
         else:
             widgets = [urwid.Text(('banner', u"press enter to load key contents: "), align='center')]
-        
+
         for k in items:
             widgets.append(KeyListItem(k))
 
@@ -105,15 +117,18 @@ class ContentDisplayPanel(urwid.WidgetWrap):
         listbox_content = [
             self.txt
         ]
-        
+
         listbox = urwid.ListBox(urwid.SimpleListWalker(listbox_content))
-    
+
         super().__init__(listbox)
 
         subscribers.append(self._onevent)
 
     def _onevent(self, e):
-        
+
+        if e['name'] == 'items-flushed':
+            self.txt.set_text('')
+
         if e['name'] == 'item-loaded':
             self.txt.set_text(e['data'].decode("utf-8"))
 
@@ -124,13 +139,15 @@ class ContentDisplayPanel(urwid.WidgetWrap):
 def handle_global_key(key):
     if key == 'q':
         raise urwid.ExitMainLoop()
-    
+
     elif key == 'r':
         notify({'name': 'refresh'})
+
+    elif key == 'f':
+        notify({'name': 'flush'})
 
     elif key == 'd':
         notify({'name': 'delete'})
 
     elif key == 'y':
         notify({'name': 'copy'})
-
